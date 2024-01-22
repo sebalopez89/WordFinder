@@ -4,31 +4,48 @@ using System.Linq;
 
 namespace WordFinderNamespace
 {
-    public class WordFinder
+    public class WordFinder3
     {
-        private List<string>? possibleWords;
+        private readonly char[,] matrix;
         private Dictionary<string, int> wordCount = new Dictionary<string, int>();
 
-        public WordFinder(IEnumerable<string>? matrix)
+        public WordFinder3(IEnumerable<string>? matrix)
         {
             ValidateMatrix(matrix);
             int matrixSize = matrix!.First().Length;
+            this.matrix = new char[matrixSize, matrixSize];
 
-            possibleWords = new List<string>();
             for (int i = 0; i < matrixSize; i++)
             {
-                possibleWords.Add(new string(matrix!.Select(word => word[i]).ToArray()));
+                for (int j = 0; j < matrixSize; j++)
+                {
+                    this.matrix[i, j] = matrix!.ElementAt(i)[j];
+                }
             }
-            possibleWords.AddRange(matrix!);
         }
 
         public IEnumerable<string> Find(IEnumerable<string> wordstream)
         {
-            var wordDict = new Dictionary<string, string>();
-            wordstream.ToList().ForEach(word => wordDict.Add(word, ReverseWord(word)));
-            foreach (var possibleWord in possibleWords!)
+            // Check horizontally
+            for (int i = 0; i < matrix.GetLength(0); i++)
             {
-                CountWord(possibleWord, wordDict);
+                string word = "";
+                for (int j = 0; j < matrix.GetLength(1); j++)
+                {
+                    word += matrix[i, j];
+                }
+                CountWord(word, wordstream);
+            }
+
+            // Check vertically
+            for (int j = 0; j < matrix.GetLength(1); j++)
+            {
+                string word = "";
+                for (int i = 0; i < matrix.GetLength(0); i++)
+                {
+                    word += matrix[i, j];
+                }
+                CountWord(word, wordstream);
             }
 
             // Get top 10 most repeated words
@@ -39,20 +56,17 @@ namespace WordFinderNamespace
             return topWords;
         }
 
-        private void CountWord(string possibleWord, Dictionary<string, string> wordsDict)
+        private void CountWord(string possibleWord, IEnumerable<string> wordstream)
         {
-            foreach (KeyValuePair<string, string> entry in wordsDict)
+            foreach (var elem in wordstream.Where(word => possibleWord.Contains(word) ))
             {
-                if (possibleWord.Contains(entry.Key) || possibleWord.Contains(entry.Value))
+                if (!wordCount.ContainsKey(elem))
                 {
-                    if (!wordCount.ContainsKey(entry.Key))
-                    {
-                        wordCount[entry.Key] = 1;
-                    }
-                    else
-                    {
-                        wordCount[entry.Key]++;
-                    }
+                    wordCount[elem] = 1;
+                }
+                else
+                {
+                    wordCount[elem]++;
                 }
             }
         }
@@ -75,13 +89,6 @@ namespace WordFinderNamespace
             {
                 throw new ArgumentException("Matrix must be square (all rows have the same length).");
             }
-        }
-
-        private string ReverseWord(string word)
-        {
-            char[] charArray = word.ToCharArray();
-            Array.Reverse(charArray);
-            return new string(charArray);
         }
     }
 }
